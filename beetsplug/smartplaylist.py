@@ -201,11 +201,34 @@ class SmartPlaylistPlugin(BeetsPlugin):
 
         # Write all of the accumulated track lists to files.
         for m3u in m3us:
-            m3u_path = normpath(os.path.join(playlist_dir,
-                                bytestring_path(m3u)))
-            mkdirall(m3u_path)
-            with open(syspath(m3u_path), 'wb') as f:
+            # CUSTOM PART FROM JONES TO ADD TRACKS THAT AREN'T ANY MORE FETCHED WITH THE QUERY
+            PLroot = normpath(os.path.join(playlist_dir, bytestring_path(m3u)))
+            oldfile = PLroot+".query"
+            newfile = PLroot+".new"
+            removefile = PLroot+".remove"
+            mkdirall(newfile)
+            newpaths = []
+            with open(syspath(newfile), 'wb') as newf:
+                # create newfile
                 for path in m3us[m3u]:
-                    f.write(path + b'\n')
+                    newf.write(path + b'\n')
+                    newpaths.append(path)
+                # check if oldfile exists
+            if os.path.isfile(oldfile):
+                with open(syspath(oldfile), 'r') as oldf:
+                    oldpaths = oldf.read().splitlines()
+                    # check foreach path in oldfile if it is not in newpaths and write it to the removefile then
+                    for path in oldpaths:
+                        #if not path in newf.read():
+                        if not any(path in newpath for newpath in newpaths):
+                            print("oldpath: "+path+" is not in newf.read()")
+                            # write path to removefile
+                            with open(syspath(removefile), 'ab') as remf:
+                                remf.write(path + b'\n')
+                # delete the oldfile
+                os.remove(oldfile)
+            #rename newfile to syntax of oldfile
+            os.rename(newfile, oldfile)
+            # END OF JONES CUSTOM PART
 
         self._log.info(u"{0} playlists updated", len(self._matched_playlists))
